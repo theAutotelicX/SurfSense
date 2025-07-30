@@ -1,10 +1,10 @@
-version: '3.8'
-
 services:
   db:
     image: ankane/pgvector:latest
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - backend_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -16,6 +16,8 @@ services:
     image: dpage/pgadmin4
     ports:
       - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - backend_network
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@surfsense.com}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-surfsense}
@@ -23,6 +25,54 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
       - db
+  frontend:
+    image: surfsense_ui:latest
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./surfsense_web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - backend_network
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000}
+
+  backend:
+    image: surfsense_backend:latest
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - backend_network
+    volumes:
+      - ./surfsense_backend:/app
+    depends_on:
+      - db
+    env_file:
+      - ./surfsense_backend/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-surfsense}
+      - PYTHONPATH=/app
+      - UVICORN_LOOP=asyncio
+      - UNSTRUCTURED_HAS_PATCHED_LOOP=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - LANGCHAIN_TRACING_V2=false
+      - LANGSMITH_TRACING=false
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  backend_network:
+    driver: bridge
+  frontend_network:
+    driver: bridge
 
 volumes:
   postgres_data:
