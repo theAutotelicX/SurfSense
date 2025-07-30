@@ -1,7 +1,7 @@
 Installation
 ---
 
-I think i change `.env` of backend to `AUTH_TYPE=LOCAL` and `NEXT_FRONTEND_URL=http://0.0.0.0:3000` which not good for security but at least first installation is work :)
+I think i change `.env` of backend to `AUTH_TYPE=LOCAL` and `NEXT_FRONTEND_URL=http://0.0.0.0:3000` which not good for security but at least the first installation is work :)
 
 You may need to fix network which I assign all of them to backend (which should not for public facing env).
 
@@ -11,7 +11,8 @@ docker build -t  surfsense_backend .
 cd ..
 cd  SurfSense\surfsense_web
 docker build -t surfsense_ui .
-
+cd ..
+docker-compose up
 ```
 
 Below are from source 
